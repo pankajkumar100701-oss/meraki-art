@@ -639,6 +639,41 @@ main > :not(.cave-bg):not(.cave-fallback):not(.nav):not(.mobile-bar) {
   }
 }
 
+/* ---------- phones: drop the effects that are expensive over a live canvas ---------- */
+@media (max-width: 760px), (pointer: coarse) {
+  .btn-ghost,
+  .dish-tag,
+  .mobile-bar {
+    backdrop-filter: none;
+  }
+  .mobile-bar {
+    background: rgba(28, 20, 14, 0.96);
+  }
+  .btn-ghost {
+    background: rgba(28, 20, 14, 0.75);
+  }
+  .section {
+    background: rgba(18, 12, 8, 0.8);
+  }
+  .reveal,
+  .reveal[data-in="true"] {
+    filter: none;
+  }
+  .reveal {
+    transform: translate3d(0, 40px, 0) scale(0.94);
+    transition: opacity 0.7s ease, transform 0.8s cubic-bezier(0.16, 0.9, 0.2, 1);
+  }
+  .reveal[data-in="true"] {
+    transform: none;
+  }
+  .hero-title {
+    text-shadow: none;
+  }
+  .btn-bloom {
+    box-shadow: none;
+  }
+}
+
 /* ---------- reveal ---------- */
 /* Content rises out of the cave's depth toward the viewer. */
 .reveal {

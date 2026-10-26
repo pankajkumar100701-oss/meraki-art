@@ -87,17 +87,17 @@ export default function CaveScene() {
     if (!mount) return;
     const section = document.querySelector<HTMLElement>("[data-cave]");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const mobile = window.innerWidth < 760;
-    const TUBULAR = mobile ? 520 : 1300;
-    const RADIAL = mobile ? 48 : 96;
+    const mobile = window.innerWidth < 760 || window.matchMedia("(pointer: coarse)").matches;
+    const TUBULAR = mobile ? 380 : 1300;
+    const RADIAL = mobile ? 36 : 96;
 
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      renderer = new THREE.WebGLRenderer({ antialias: !mobile, powerPreference: "high-performance" });
     } catch {
       return; // no WebGL: the CSS fallback gradient stays visible
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.5 : 2));
+    renderer.setPixelRatio(mobile ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -152,7 +152,7 @@ export default function CaveScene() {
       vertexColors: true,
       roughness: 0.92,
       metalness: 0,
-      normalMap,
+      normalMap: mobile ? null : normalMap,
       normalScale: new THREE.Vector2(0.45, 0.45),
       side: THREE.BackSide,
     });
@@ -174,7 +174,7 @@ export default function CaveScene() {
       depthWrite: false,
     });
     const lamps: { group: THREE.Group; halo: THREE.Sprite; t: number }[] = [];
-    const lampCount = mobile ? 14 : 20;
+    const lampCount = mobile ? 12 : 20;
     for (let i = 0; i < lampCount; i++) {
       const t = 0.04 + i * (0.94 / lampCount);
       const c = path.getPointAt(t);
@@ -196,14 +196,14 @@ export default function CaveScene() {
       lamps.push({ group: g, halo, t });
     }
     // Only the lamps around the camera cast real light; the pool hops ahead as you travel.
-    const lights = Array.from({ length: 6 }, () => {
+    const lights = Array.from({ length: mobile ? 3 : 6 }, () => {
       const l = new THREE.PointLight("#ffc283", 16, 20, 1.6);
       scene.add(l);
       return l;
     });
 
     // Bougainvillea petals drifting through the cave.
-    const petalCount = mobile ? 160 : 420;
+    const petalCount = mobile ? 60 : 420;
     const petalShape = new THREE.Shape();
     petalShape.moveTo(0, -0.08);
     petalShape.quadraticCurveTo(0.09, -0.02, 0.06, 0.06);
@@ -229,7 +229,7 @@ export default function CaveScene() {
     const dummy = new THREE.Object3D();
 
     // Warm dust motes catching the lamplight.
-    const dustCount = mobile ? 700 : 2800;
+    const dustCount = mobile ? 250 : 2800;
     const dustPos = new Float32Array(dustCount * 3);
     for (let i = 0; i < dustCount; i++) {
       path.getPointAt(Math.random() * 0.97, center);
@@ -293,10 +293,21 @@ export default function CaveScene() {
     const look = new THREE.Vector3();
     const clock = new THREE.Clock();
     let raf = 0;
+    // Phones: cap at 30fps, and once scrolling settles stop drawing entirely so
+    // the GPU is idle while someone is reading.
+    let lastDraw = 0, lastScroll = performance.now();
+    const onScrollTime = () => (lastScroll = performance.now());
+    window.addEventListener("scroll", onScrollTime, { passive: true });
 
     const frame = () => {
       raf = requestAnimationFrame(frame);
       if (document.hidden || paused) return;
+      if (mobile) {
+        const now = performance.now();
+        if (now - lastDraw < 33) return;
+        if (now - lastScroll > 1200 && Math.abs(progress - smooth) < 0.0005 && lastDraw > 0) return;
+        lastDraw = now;
+      }
       const time = clock.getElapsedTime();
       smooth += (progress - smooth) * 0.06;
       mouse.x += (mouse.tx - mouse.x) * 0.05;
@@ -345,6 +356,7 @@ export default function CaveScene() {
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("scroll", readScroll);
+      window.removeEventListener("scroll", onScrollTime);
       scene.traverse((o) => {
         if (o instanceof THREE.Mesh || o instanceof THREE.Line || o instanceof THREE.Points) o.geometry.dispose();
       });
