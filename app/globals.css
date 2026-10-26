@@ -468,33 +468,46 @@ main > :not(.cave-bg):not(.cave-fallback):not(.nav):not(.mobile-bar) {
   z-index: 2;
   pointer-events: none;
 }
+/* Zero-size pivot: a sized 3D container gets a faint outline painted by Chrome. */
 .ring {
   --radius: clamp(260px, 38vw, 560px);
+  --card: clamp(170px, 20vw, 270px);
   position: relative;
-  width: clamp(170px, 20vw, 270px);
-  aspect-ratio: 3 / 4;
+  width: 0;
+  height: 0;
   transform-style: preserve-3d;
   transform: translateY(6vh) rotateX(-8deg) rotateY(calc(var(--p) * -315deg));
 }
 .ring-item {
   position: absolute;
-  inset: 0;
+  left: calc(var(--card) / -2);
+  top: calc(var(--card) * -2 / 3);
+  width: var(--card);
+  aspect-ratio: 3 / 4;
   border-radius: 18px;
   overflow: hidden;
+  /* --a: where this card currently points; cards turned away fade out fully,
+     so their back edges never show as stray outlines. */
+  --a: calc(var(--i) * 45deg - var(--p) * 315deg);
   transform: rotateY(calc(var(--i) * 45deg)) translateZ(var(--radius));
+  opacity: clamp(0, calc(cos(var(--a)) * 1.6 + 0.7), 1);
+  /* Chrome still paints a faint edge on fully transparent 3D cards, so turned-away
+     cards are also scaled to nothing. */
+  scale: clamp(0, calc((cos(var(--a)) + 0.45) * 30), 1);
+  backface-visibility: hidden;
   box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.9);
-  -webkit-box-reflect: below 10px linear-gradient(transparent 70%, rgba(255, 255, 255, 0.12));
+}
+.ring-item img {
+  backface-visibility: hidden;
 }
 @media (max-width: 760px) {
   /* Lite ring for phones: smaller radius, no reflections or heavy shadows. */
   .ring {
     --radius: 190px;
-    width: 130px;
+    --card: 130px;
   }
   .ring-item {
-    -webkit-box-reflect: unset;
     box-shadow: none;
-    backface-visibility: hidden;
   }
   .ring-stage {
     background: var(--ink);
