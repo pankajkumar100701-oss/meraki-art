@@ -173,7 +173,7 @@ export default function CaveScene() {
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-    const lamps: { group: THREE.Group; halo: THREE.Sprite; t: number }[] = [];
+    const lamps: { group: THREE.Group; t: number }[] = [];
     const lampCount = mobile ? 12 : 20;
     for (let i = 0; i < lampCount; i++) {
       const t = 0.04 + i * (0.94 / lampCount);
@@ -193,7 +193,7 @@ export default function CaveScene() {
       halo.scale.setScalar(3.4);
       g.add(halo);
       scene.add(g);
-      lamps.push({ group: g, halo, t });
+      lamps.push({ group: g, t });
     }
     // Only the lamps around the camera cast real light; the pool hops ahead as you travel.
     const lights = Array.from({ length: mobile ? 3 : 6 }, () => {
@@ -251,8 +251,14 @@ export default function CaveScene() {
     const dust = new THREE.Points(dustGeo, dustMat);
     scene.add(dust);
 
+    let lastW = 0, lastH = 0;
     const resize = () => {
       const w = mount.clientWidth, h = mount.clientHeight;
+      // Mobile address bar showing/hiding only nudges the height; reallocating
+      // the canvas for that causes a visible stutter mid-scroll.
+      if (w === lastW && Math.abs(h - lastH) < 160) return;
+      lastW = w;
+      lastH = h;
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.fov = w < h ? 82 : 68;
@@ -305,7 +311,8 @@ export default function CaveScene() {
       if (mobile) {
         const now = performance.now();
         if (now - lastDraw < 33) return;
-        if (now - lastScroll > 1200 && Math.abs(progress - smooth) < 0.0005 && lastDraw > 0) return;
+        const inHero = window.scrollY < window.innerHeight * 2;
+        if (!inHero && now - lastScroll > 1200 && Math.abs(progress - smooth) < 0.0005 && lastDraw > 0) return;
         lastDraw = now;
       }
       const time = clock.getElapsedTime();
@@ -328,10 +335,8 @@ export default function CaveScene() {
         lamp.group.getWorldPosition(light.position);
         light.intensity = 16 * (1 + Math.sin(time * 3 + k * 2) * 0.05 + Math.sin(time * 7.3 + k) * 0.02);
       });
-      lamps.forEach(({ group, halo }, i) => {
-        group.rotation.z = Math.sin(time * 0.8 + i) * 0.04;
-        halo.material.opacity = 0.85 + Math.sin(time * 3 + i * 2) * 0.05;
-      });
+      lamps.forEach(({ group }, i) => (group.rotation.z = Math.sin(time * 0.8 + i) * 0.04));
+      glowMat.opacity = 0.85 + Math.sin(time * 3) * 0.05;
 
       for (let i = 0; i < petalCount; i++) {
         const s = seeds[i];

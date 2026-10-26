@@ -187,7 +187,7 @@ export default function Home() {
             <div className="ring">
               {RING.map((img, i) => (
                 <div key={img} className="ring-item" style={{ "--i": i } as CSSProperties}>
-                  <Image src={`/photos/${img}`} alt="" fill sizes="(max-width: 760px) 130px, 270px" style={{ objectFit: "cover" }} />
+                  <Image src={`/photos/${img}`} alt="" fill loading="eager" sizes="(max-width: 760px) 130px, 270px" style={{ objectFit: "cover" }} />
                 </div>
               ))}
             </div>
